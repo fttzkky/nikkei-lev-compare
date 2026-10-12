@@ -21,8 +21,7 @@ def get_data():
     lev.columns = ["1570終値"]
     lev.index = pd.to_datetime(lev.index).tz_localize(None)
 
-    ticker_obj = yf.Ticker("1570.T")
-    splits = ticker_obj.splits
+    splits = yf.Ticker("1570.T").splits
     if not splits.empty:
         splits.index = splits.index.tz_localize(None)
         for split_date in splits.sort_index(ascending=False).index:
@@ -32,16 +31,9 @@ def get_data():
 
     df = n225.join(lev, how="inner")
     df = df.dropna()
-    return df, splits
+    return df
 
-df, splits_info = get_data()
-
-with st.expander("🔍 分割履歴"):
-    st.dataframe(splits_info.to_frame(name="分割比率") if not splits_info.empty else "なし")
-    if pd.Timestamp("2012-06-04") in df.index:
-        row = df.loc[pd.Timestamp("2012-06-04")]
-        st.write(f"2012-06-04: 1570終値={row['1570終値']:.0f}円")
-
+df = get_data()
 hit = df[df["1570終値"] < df["N225終値"]].copy()
 hit = hit.sort_index(ascending=False)
 hit.index.name = "日付"
@@ -65,8 +57,8 @@ st.divider()
 col_y, col_m = st.columns(2)
 year_filter = col_y.selectbox("年を絞り込む", ["全件"] + sorted(df.index.year.unique().tolist(), reverse=True))
 
-month_names = {1:"1月",2:"2月",3:"3月",4:"4月",5:"5月",6:"6月",
-               7:"7月",8:"8月",9:"9月",10:"10月",11:"11月",12:"12月"}
+month_names = {1:"１月",2:"２月",3:"３月",4:"４月",5:"５月",6:"６月",
+               7:"７月",8:"８月",9:"９月",10:"10月",11:"11月",12:"12月"}
 
 if year_filter == "全件":
     month_options = ["全月"]
@@ -98,4 +90,4 @@ def color_diff(val):
 styled = display.style.map(color_diff, subset=["差額（1570－日経）"])
 st.dataframe(styled, use_container_width=True)
 st.divider()
-st.caption("⚠️ データはyfinance経由。投資判断はご自身の責任で。")
+st.caption("⚠️ データはyfinance経由。投資判断はご自身の貣任で。")
