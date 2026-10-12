@@ -21,13 +21,9 @@ def get_data():
     lev.columns = ["1570終値"]
     lev.index = pd.to_datetime(lev.index).tz_localize(None)
 
-    splits = yf.Ticker("1570.T").splits
-    if not splits.empty:
-        splits.index = splits.index.tz_localize(None)
-        for split_date in splits.sort_index(ascending=False).index:
-            ratio = splits[split_date]
-            mask = lev.index < split_date
-            lev.loc[mask, "1570終値"] *= ratio
+    # 2021-04-30に1口→2口分割（yfinanceのデータが分割調整済みのためハードコードで逆算）
+    split_date = pd.Timestamp("2021-04-30")
+    lev.loc[lev.index < split_date, "1570終値"] *= 2
 
     df = n225.join(lev, how="inner")
     df = df.dropna()
