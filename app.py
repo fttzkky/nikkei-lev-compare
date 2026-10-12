@@ -13,12 +13,15 @@ def get_data():
     n225_raw.index = n225_raw.index.tz_localize(None)
     n225 = n225_raw[["Close"]].copy()
     n225.columns = ["N225終値"]
+
+    # auto_adjust=False で分割調整なしの実際の終値を取得
     lev_raw = yf.download("1570.T", start=start, progress=False, auto_adjust=False)
     if isinstance(lev_raw.columns, pd.MultiIndex):
         lev_raw.columns = lev_raw.columns.droplevel(1)
     lev = lev_raw[["Close"]].copy()
     lev.columns = ["1570終値"]
     lev.index = pd.to_datetime(lev.index).tz_localize(None)
+
     df = n225.join(lev, how="inner")
     df = df.dropna()
     return df
@@ -44,13 +47,30 @@ by_year["該当率(%)"] = (by_year["該当日数"] / by_year["総営業日数"] 
 st.dataframe(by_year, use_container_width=True)
 st.divider()
 
-year_filter = st.selectbox("年を絞り込む", ["全件"] + sorted(df.index.year.unique().tolist(), reverse=True))
+col_y, col_m = st.columns(2)
+year_filter = col_y.selectbox("年を絞り込む", ["全件"] + sorted(df.index.year.unique().tolist(), reverse=True))
+
+month_names = {1:"1月",2:"2月",3:"3月",4:"4月",5:"5月",6:"6月",
+               7:"7月",8:"8月",9:"9月",10:"10月",11:"11月",12:"12月"}
+
+if year_filter == "全件":
+    month_options = ["全月"]
+else:
+    available_months = sorted(df[df.index.year == int(year_filter)].index.month.unique().tolist())
+    month_options = ["全月"] + [month_names[m] for m in available_months]
+
+month_filter = col_m.selectbox("月を絞り込む", month_options)
+
 if year_filter == "全件":
     disp_hit = hit
 else:
     disp_hit = hit[hit.index.year == int(year_filter)]
+    if month_filter != "全月":
+        month_num = [k for k, v in month_names.items() if v == month_filter][0]
+        disp_hit = disp_hit[disp_hit.index.month == month_num]
 
-st.subheader(f"📋 {year_filter}：{len(disp_hit):,}件（1570終値 ＜ 日経225終値）")
+label = f"{year_filter}" if month_filter == "全月" else f"{year_filter} {month_filter}"
+st.subheader(f"📋 {label}：{len(disp_hit):,}件（1570終値 ＜ 日経225終値）")
 display = disp_hit.copy()
 display.index = display.index.strftime("%Y-%m-%d")
 display["差額（1570－日経）"] = (display["1570終値"] - display["N225終値"]).round(0).astype(int)
