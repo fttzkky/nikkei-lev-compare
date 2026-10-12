@@ -14,7 +14,6 @@ def get_data():
     n225 = n225_raw[["Close"]].copy()
     n225.columns = ["N225終値"]
 
-    # auto_adjust=False で分割調整なしの実際の終値を取得
     lev_raw = yf.download("1570.T", start=start, progress=False, auto_adjust=False)
     if isinstance(lev_raw.columns, pd.MultiIndex):
         lev_raw.columns = lev_raw.columns.droplevel(1)
@@ -22,11 +21,27 @@ def get_data():
     lev.columns = ["1570終値"]
     lev.index = pd.to_datetime(lev.index).tz_localize(None)
 
+    ticker_obj = yf.Ticker("1570.T")
+    splits = ticker_obj.splits
+    if not splits.empty:
+        splits.index = splits.index.tz_localize(None)
+        for split_date in splits.sort_index(ascending=False).index:
+            ratio = splits[split_date]
+            mask = lev.index < split_date
+            lev.loc[mask, "1570終値"] *= ratio
+
     df = n225.join(lev, how="inner")
     df = df.dropna()
-    return df
+    return df, splits
 
-df = get_data()
+df, splits_info = get_data()
+
+with st.expander("🔍 分割履歴"):
+    st.dataframe(splits_info.to_frame(name="分割比率") if not splits_info.empty else "なし")
+    if pd.Timestamp("2012-06-04") in df.index:
+        row = df.loc[pd.Timestamp("2012-06-04")]
+        st.write(f"2012-06-04: 1570終値={row['1570終値']:.0f}円")
+
 hit = df[df["1570終値"] < df["N225終値"]].copy()
 hit = hit.sort_index(ascending=False)
 hit.index.name = "日付"
