@@ -65,4 +65,4 @@ styled = display.style.map(color_diff, subset=["差額（1570－日経）"])
 st.dataframe(styled, use_container_width=True)
 
 st.divider()
-st.caption("data is yfinance. at your own risk.")
+st.caption("⚠️ データはyfinance経由。投資判断はご自身の責任で。")
