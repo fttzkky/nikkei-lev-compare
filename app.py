@@ -44,8 +44,14 @@ by_year["該当率(%)"] = (by_year["該当日数"] / by_year["総営業日数"] 
 st.dataframe(by_year, use_container_width=True)
 st.divider()
 
-st.subheader(f"📋 全{len(hit):,}件リスト（1570終値 ＜ 日経225終値）")
-display = hit.copy()
+year_filter = st.selectbox("年を絞り込む", ["全件"] + sorted(df.index.year.unique().tolist(), reverse=True))
+if year_filter == "全件":
+    disp_hit = hit
+else:
+    disp_hit = hit[hit.index.year == int(year_filter)]
+
+st.subheader(f"📋 {year_filter}：{len(disp_hit):,}件（1570終値 ＜ 日経225終値）")
+display = disp_hit.copy()
 display.index = display.index.strftime("%Y-%m-%d")
 display["差額（1570－日経）"] = (display["1570終値"] - display["N225終値"]).round(0).astype(int)
 display["1570終値"] = display["1570終値"].round(0).astype(int)
